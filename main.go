@@ -1,103 +1,93 @@
 package main
 
-/* btcusd
 import (
+	"database/sql"
+	"fmt"
 	"log"
-	"net/url"
 
-	"github.com/gorilla/websocket"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-type JsonRPC2 struct {
-	Version string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	Result  interface{} `json:"result,omitempty"`
-	Id      *int        `json:"id,omitempty"`
-}
-type SubscribeParams struct {
-	Channel string `json:"channel"`
+var DbConnection *sql.DB
+
+type Person struct {
+	Name string
+	Age  int
 }
 
 func main() {
-	u := url.URL{Scheme: "wss", Host: "ws.lightstream.bitflyer.com", Path: "/json-rpc"}
-	log.Printf("connecting to %s", u.String())
-
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	DbConnection, _ := sql.Open("sqlite3", "./example.sql")
+	defer DbConnection.Close()
+	cmd := `CREATE TABLE IF NOT EXISTS person(
+						name STRING,
+						age  INT)`
+	_, err := DbConnection.Exec(cmd)
 	if err != nil {
-		log.Fatal("dial:", err)
-	}
-	defer c.Close()
-
-	if err := c.WriteJSON(&JsonRPC2{Version: "2.0", Method: "subscribe", Params: &SubscribeParams{"lightning_ticker_BTC_USD"}}); err != nil {
-		log.Fatal("subscribe:", err)
-		return
+		log.Fatalln(err)
 	}
 
-	for {
-		message := new(JsonRPC2)
-		if err := c.ReadJSON(message); err != nil {
-			log.Println("read:", err)
-			return
+	// insert/update
+	// cmd = "INSERT INTO person (name, age) VALUES (?, ?)"
+	// _, err = DbConnection.Exec(cmd, "Smith", 20)
+	// cmd = "UPDATE person SET age = ? WHERE name = ?"
+	// _, err = DbConnection.Exec(cmd, 40, "Mike")
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+
+	// select
+	// cmd = "SELECT * FROM person"
+	// rows, _ := DbConnection.Query(cmd)
+	// defer rows.Close()
+	// var pp []Person
+	// for rows.Next() {
+	// 	var p Person
+	// 	rows.Scan(&p.Name, &p.Age)
+	// 	pp = append(pp, p)
+	// }
+	// err = rows.Err()
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// for _, p := range pp {
+	// 	fmt.Println(p.Name, p.Age)
+	// }
+
+	// select
+	// cmd = "SELECT * FROM person where age = ?"
+	// row := DbConnection.QueryRow(cmd, 100)
+	// var p Person
+	// err = row.Scan(&p.Name, &p.Age)
+	// if err != nil {
+	// 	if err == sql.ErrNoRows {
+	// 		log.Println("No row")
+	// 	} else {
+	// 		log.Println(err)
+	// 	}
+	// }
+	// fmt.Println(p.Name, p.Age)
+
+	// delete
+	// cmd = "DELETE FROM person WHERE name = ?"
+	// _, err = DbConnection.Exec(cmd, "Nancy")
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+
+	// 値ではなくテーブル名を変数として入れたい場合
+	tableName := "person"
+	cmd = fmt.Sprintf("SELECT * FROM %s", tableName)
+	row := DbConnection.QueryRow(cmd)
+	var p Person
+	err = row.Scan(&p.Name, &p.Age)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Println("No row")
+		} else {
+			log.Println(err)
 		}
-
-		if message.Method == "channelMessage" {
-			log.Println(message.Params)
-		}
 	}
-}
-*/
-/* talib
-func main() {
-	spy, _ := quote.NewQuoteFromYahoo("spy", "2017-01-01", "2017-07-12", quote.Daily, true)
-	fmt.Print(spy.CSV())
-	rsi2 := talib.Rsi(spy.Close, 2)
-	fmt.Println(rsi2)
-}
-/*
-/* ini
-type ConfigList struct {
-	Port      int
-	DbName    string
-	SQLDriver string
-}
+	fmt.Println(p.Name, p.Age)
 
-var Config ConfigList
-
-func init() {
-	cfg, _ := ini.Load("config.ini")
-	Config = ConfigList{
-		Port:      cfg.Section("web").Key("port").MustInt(),
-		DbName:    cfg.Section("db").Key("name").MustString("example.sql"),
-		SQLDriver: cfg.Section("db").Key("driver").String(),
-	}
+	fmt.Println("###end###")
 }
-
-func main() {
-	fmt.Printf("%T %v\n", Config.Port, Config.Port)
-	fmt.Printf("%T %v\n", Config.DbName, Config.DbName)
-	fmt.Printf("%T %v\n", Config.SQLDriver, Config.SQLDriver)
-}
-*/
-/* semaphore
-var s *semaphore.Weighted = semaphore.NewWeighted(1)
-
-func longPrecess(ctx context.Context) {
-	if err := s.Acquire(ctx, 1); err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer s.Release(1)
-	fmt.Println("Wait...")
-	time.Sleep(1 * time.Second)
-	fmt.Println("Done")
-}
-
-func main() {
-	ctx := context.TODO()
-	go longPrecess(ctx)
-	go longPrecess(ctx)
-	go longPrecess(ctx)
-	time.Sleep(5 * time.Second)
-}
-*/
